@@ -16,7 +16,10 @@ const registerAndLogin = async () => {
     password,
   });
 
-  return loginResponse.body.token;
+  return {
+    token: loginResponse.body.token,
+    userId: loginResponse.body.user.id,
+  };
 };
 
 describe("API Integration", () => {
@@ -85,16 +88,20 @@ describe("API Integration", () => {
   });
 
   test("protected task routes reject requests without token", async () => {
-    const response = await request(app).post("/api/tasks").send({
+    const createResponse = await request(app).post("/api/tasks").send({
       title: "Unauthorized task",
     });
 
-    expect(response.status).toBe(401);
-    expect(response.body.message).toBe("Authorization token is required.");
+    expect(createResponse.status).toBe(401);
+    expect(createResponse.body.message).toBe("Authorization token is required.");
+
+    const listResponse = await request(app).get("/api/tasks");
+    expect(listResponse.status).toBe(401);
+    expect(listResponse.body.message).toBe("Authorization token is required.");
   });
 
   test("task CRUD works with valid JWT token", async () => {
-    const token = await registerAndLogin();
+    const { token, userId } = await registerAndLogin();
     const authHeader = { Authorization: `Bearer ${token}` };
 
     const createResponse = await request(app).post("/api/tasks").set(authHeader).send({
@@ -106,9 +113,10 @@ describe("API Integration", () => {
     expect(createResponse.status).toBe(201);
     expect(createResponse.body.title).toBe("Write API tests");
     expect(createResponse.body.status).toBe("pending");
+    expect(createResponse.body.user).toBe(userId);
     const taskId = createResponse.body._id;
 
-    const getResponse = await request(app).get("/api/tasks");
+    const getResponse = await request(app).get("/api/tasks").set(authHeader);
     expect(getResponse.status).toBe(200);
     expect(Array.isArray(getResponse.body)).toBe(true);
     expect(getResponse.body.some((task) => task._id === taskId)).toBe(true);
@@ -128,7 +136,7 @@ describe("API Integration", () => {
   });
 
   test("task validation and edge cases return expected errors", async () => {
-    const token = await registerAndLogin();
+    const { token } = await registerAndLogin();
     const authHeader = { Authorization: `Bearer ${token}` };
 
     const invalidStatusResponse = await request(app).post("/api/tasks").set(authHeader).send({
@@ -149,6 +157,35 @@ describe("API Integration", () => {
       .delete("/api/tasks/507f1f77bcf86cd799439011")
       .set(authHeader);
     expect(missingTaskDelete.status).toBe(404);
-    expect(missingTaskDelete.body.message).toBe("Task not found.");
+    expect(missingTaskDelete.body.message).toBe("Task not found or not authorized.");
+  });
+
+  test("users cannot update or delete tasks they do not own", async () => {
+    const ownerSession = await registerAndLogin();
+    const otherSession = await registerAndLogin();
+
+    const ownerHeader = { Authorization: `Bearer ${ownerSession.token}` };
+    const otherHeader = { Authorization: `Bearer ${otherSession.token}` };
+
+    const createResponse = await request(app).post("/api/tasks").set(ownerHeader).send({
+      title: "Owner-only task",
+      status: "pending",
+    });
+
+    expect(createResponse.status).toBe(201);
+    const taskId = createResponse.body._id;
+
+    const unauthorizedUpdate = await request(app)
+      .put(`/api/tasks/${taskId}`)
+      .set(otherHeader)
+      .send({ status: "completed" });
+
+    expect(unauthorizedUpdate.status).toBe(404);
+    expect(unauthorizedUpdate.body.message).toBe("Task not found or not authorized.");
+
+    const unauthorizedDelete = await request(app).delete(`/api/tasks/${taskId}`).set(otherHeader);
+
+    expect(unauthorizedDelete.status).toBe(404);
+    expect(unauthorizedDelete.body.message).toBe("Task not found or not authorized.");
   });
 });
