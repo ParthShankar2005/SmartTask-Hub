@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FaFilter, FaPlus } from "react-icons/fa";
+import { FaFilter, FaPlus, FaSearch } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import TaskForm from "../components/TaskForm";
 import TaskItem from "../components/TaskItem";
@@ -13,8 +13,23 @@ const STATUS_FILTERS = [
   { value: "completed", label: "Completed" },
 ];
 
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest First" },
+  { value: "oldest", label: "Oldest First" },
+  { value: "due-date", label: "Due Date (Closest First)" },
+];
+
 const getApiErrorMessage = (error, fallbackMessage) =>
   error?.response?.data?.message || fallbackMessage;
+
+const toTimeValue = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  const parsedTime = new Date(value).getTime();
+  return Number.isNaN(parsedTime) ? null : parsedTime;
+};
 
 function TaskList() {
   const navigate = useNavigate();
@@ -23,6 +38,8 @@ function TaskList() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
+  const [searchTerm, setSearchTerm] = useState("");
   const [formMode, setFormMode] = useState("create");
   const [selectedTask, setSelectedTask] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -65,12 +82,51 @@ function TaskList() {
     return () => clearTimeout(timer);
   }, [successMessage]);
 
-  const filteredTasks = useMemo(() => {
-    if (statusFilter === "all") {
-      return tasks;
+  const visibleTasks = useMemo(() => {
+    let result = [...tasks];
+
+    if (statusFilter !== "all") {
+      result = result.filter((task) => task.status === statusFilter);
     }
-    return tasks.filter((task) => task.status === statusFilter);
-  }, [tasks, statusFilter]);
+
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    if (normalizedSearch) {
+      result = result.filter((task) => {
+        const title = task.title?.toLowerCase() || "";
+        const description = task.description?.toLowerCase() || "";
+        return title.includes(normalizedSearch) || description.includes(normalizedSearch);
+      });
+    }
+
+    result.sort((taskA, taskB) => {
+      const createdA = toTimeValue(taskA.createdAt) || 0;
+      const createdB = toTimeValue(taskB.createdAt) || 0;
+
+      if (sortBy === "oldest") {
+        return createdA - createdB;
+      }
+
+      if (sortBy === "due-date") {
+        const dueA = toTimeValue(taskA.dueDate);
+        const dueB = toTimeValue(taskB.dueDate);
+
+        if (dueA === null && dueB === null) {
+          return createdB - createdA;
+        }
+        if (dueA === null) {
+          return 1;
+        }
+        if (dueB === null) {
+          return -1;
+        }
+        return dueA - dueB;
+      }
+
+      return createdB - createdA;
+    });
+
+    return result;
+  }, [tasks, statusFilter, sortBy, searchTerm]);
 
   const openCreateForm = () => {
     setFormMode("create");
@@ -115,15 +171,16 @@ function TaskList() {
 
     try {
       if (formMode === "edit" && selectedTask?._id) {
-        await updateTask(selectedTask._id, payload, token);
+        const updatedTask = await updateTask(selectedTask._id, payload, token);
+        setTasks((prev) => prev.map((task) => (task._id === updatedTask._id ? updatedTask : task)));
         setSuccessMessage("Task updated successfully.");
       } else {
-        await addTask(payload, token);
+        const createdTask = await addTask(payload, token);
+        setTasks((prev) => [createdTask, ...prev]);
         setSuccessMessage("Task created successfully.");
       }
 
       closeForm();
-      await loadTasks();
     } catch (error) {
       if (isUnauthorizedError(error)) {
         logoutUser();
@@ -153,8 +210,8 @@ function TaskList() {
 
     try {
       await deleteTask(task._id, token);
+      setTasks((prev) => prev.filter((item) => item._id !== task._id));
       setSuccessMessage("Task deleted.");
-      await loadTasks();
     } catch (error) {
       if (isUnauthorizedError(error)) {
         logoutUser();
@@ -168,8 +225,8 @@ function TaskList() {
     }
   };
 
-  const onMarkCompleted = async (task) => {
-    if (task.status === "completed") {
+  const onStatusChange = async (task, nextStatus) => {
+    if (task.status === nextStatus) {
       return;
     }
 
@@ -183,9 +240,9 @@ function TaskList() {
     setHasLoadError(false);
 
     try {
-      await updateTask(task._id, { status: "completed" }, token);
-      setSuccessMessage("Task marked as completed.");
-      await loadTasks();
+      const updatedTask = await updateTask(task._id, { status: nextStatus }, token);
+      setTasks((prev) => prev.map((item) => (item._id === updatedTask._id ? updatedTask : item)));
+      setSuccessMessage("Task status updated.");
     } catch (error) {
       if (isUnauthorizedError(error)) {
         logoutUser();
@@ -234,6 +291,36 @@ function TaskList() {
         </div>
       </div>
 
+      <div className="task-toolbar mb-3">
+        <div className="task-search-wrap">
+          <FaSearch className="text-muted" />
+          <input
+            className="form-control task-search-input"
+            type="text"
+            placeholder="Search by title or description..."
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+          />
+        </div>
+        <div className="d-flex align-items-center gap-2">
+          <label htmlFor="sort-select" className="mb-0 small text-muted">
+            Sort
+          </label>
+          <select
+            id="sort-select"
+            className="form-select form-select-sm task-sort-select"
+            value={sortBy}
+            onChange={(event) => setSortBy(event.target.value)}
+          >
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {errorMessage && (
         <div className="alert alert-danger shadow-sm" role="alert">
           <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
@@ -258,21 +345,26 @@ function TaskList() {
             <span className="visually-hidden">Loading tasks...</span>
           </div>
         </div>
-      ) : filteredTasks.length === 0 ? (
+      ) : visibleTasks.length === 0 ? (
         <div className="task-empty-state">
-          <h3 className="mb-2">No tasks in this view</h3>
-          <p className="mb-0">Create a new task or switch filter to see more items.</p>
+          <h3 className="mb-2">{searchTerm ? "No Results Found" : "No tasks in this view"}</h3>
+          <p className="mb-0">
+            {searchTerm
+              ? "Try a different keyword or clear search to view all tasks."
+              : "Create a new task or switch filter to see more items."}
+          </p>
         </div>
       ) : (
         <div className="task-grid">
-          {filteredTasks.map((task) => (
+          {visibleTasks.map((task) => (
             <TaskItem
               key={task._id}
               task={task}
+              searchTerm={searchTerm}
               isBusy={isSubmitting || activeTaskId === task._id}
               onEdit={openEditForm}
               onDelete={onDeleteTask}
-              onMarkCompleted={onMarkCompleted}
+              onStatusChange={onStatusChange}
             />
           ))}
         </div>
