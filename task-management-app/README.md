@@ -1,5 +1,59 @@
 # Task Management App
 
+## Folder Structure
+
+```
+task-management-app/
+|-- client/
+|   |-- public/
+|   |   `-- index.html
+|   `-- src/
+|       |-- assets/
+|       |   `-- .gitkeep
+|       |-- components/
+|       |   |-- Button.js
+|       |   |-- Navbar.js
+|       |   `-- TaskItem.js
+|       |-- pages/
+|       |   |-- HomePage.js
+|       |   |-- LoginPage.js
+|       |   `-- TaskPage.js
+|       |-- services/
+|       |   `-- taskService.js
+|       |-- styles/
+|       |   `-- main.css
+|       |-- App.js
+|       `-- index.js
+|-- config/
+|   `-- db.js
+|-- controllers/
+|   |-- taskController.js
+|   `-- userController.js
+|-- middleware/
+|   `-- authMiddleware.js
+|-- models/
+|   |-- Task.js
+|   `-- User.js
+|-- routes/
+|   |-- taskRoutes.js
+|   `-- userRoutes.js
+|-- utils/
+|   `-- logger.js
+|-- .env
+|-- .env.example
+|-- .gitignore
+|-- package.json
+|-- server.js
+`-- README.md
+```
+
+## Naming Conventions
+
+1. Use `PascalCase` for model and component files (example: `User.js`, `TaskItem.js`).
+2. Use `camelCase` for route, controller, middleware, and service files (example: `taskRoutes.js`, `authMiddleware.js`).
+3. Keep related backend files grouped by concern: `models`, `controllers`, `routes`, `middleware`, `utils`, `config`.
+4. Keep frontend files grouped by concern inside `client/src`: `components`, `pages`, `services`, `styles`, `assets`.
+
 ## MongoDB Atlas Connection Checklist
 
 Use this list to connect this backend to MongoDB Atlas.
