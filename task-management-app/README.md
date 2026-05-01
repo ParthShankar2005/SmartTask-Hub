@@ -104,10 +104,28 @@ Use these settings when creating a Render Web Service from this repository.
    - `GET /api/health` should return `{ "status": "ok" }`
 6. Enable auto deploy so new GitHub pushes redeploy automatically.
 
-### Frontend API URL Update
+## Deploy Frontend to Vercel
 
-When deploying frontend separately, set:
+Use these settings when creating a Vercel project from this repository.
 
-- `REACT_APP_API_URL=https://<your-render-service>.onrender.com/api`
+1. Import GitHub repo: `ParthShankar2005/SmartTask-Hub`.
+2. Set Root Directory to `task-management-app/client`.
+3. Use:
+   - Build Command: `npm run build`
+   - Output Directory: `build`
+4. Add environment variable in Vercel:
+   - `REACT_APP_API_URL=https://<your-render-service>.onrender.com/api`
+5. Deploy and verify:
+   - App loads at `https://<your-project>.vercel.app`
+   - Login/Register works
+   - Task fetch/create/update/delete works
 
-If running frontend locally, keep using the local proxy (`client/package.json`).
+### Frontend Routing on Vercel
+
+For React Router routes (for example `/tasks`), this project includes:
+
+- `client/vercel.json` rewrite to `index.html` for SPA routing.
+
+### Local Frontend
+
+If running frontend locally, keep using the local proxy in `client/package.json` (`http://localhost:5000`).
