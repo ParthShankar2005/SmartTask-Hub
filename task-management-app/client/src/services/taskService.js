@@ -1,25 +1,19 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+import axios from "axios";
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || "/api";
 
 const getTasks = async () => {
-  const response = await fetch(`${API_BASE_URL}/tasks`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch tasks.");
-  }
-  return response.json();
+  const response = await axios.get(`${API_BASE_URL}/tasks`);
+  return response.data;
 };
 
-const createTask = async (taskPayload) => {
-  const response = await fetch(`${API_BASE_URL}/tasks`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(taskPayload),
+const createTask = async (taskPayload, token) => {
+  const response = await axios.post(`${API_BASE_URL}/tasks`, taskPayload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to create task.");
-  }
-
-  return response.json();
+  return response.data;
 };
 
 export { getTasks, createTask };
