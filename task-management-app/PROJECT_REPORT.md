@@ -64,11 +64,9 @@ This project is a full-stack task management system built with the MERN ecosyste
 
 ## 5. Deployment Links
 
-- Frontend (Vercel): `https://<your-vercel-app>.vercel.app`
+- Frontend (Vercel): `https://smart-taskhub.vercel.app`
 - Backend API (Render): `https://smarttask-hub-sfx0.onrender.com`
 - GitHub Repository: `https://github.com/ParthShankar2005/SmartTask-Hub`
-
-Note: Replace the frontend placeholder with your exact Vercel URL.
 
 ## 6. Local Setup Instructions
 
