@@ -1,4 +1,5 @@
 const Task = require("../models/Task");
+const mongoose = require("mongoose");
 
 const getTasks = async (_req, res) => {
   const tasks = await Task.find().sort({ createdAt: -1 });
@@ -8,7 +9,7 @@ const getTasks = async (_req, res) => {
 const createTask = async (req, res) => {
   const { title, description, status, dueDate } = req.body;
 
-  if (!title) {
+  if (typeof title !== "string" || !title.trim()) {
     return res.status(400).json({ message: "Title is required." });
   }
 
@@ -17,6 +18,14 @@ const createTask = async (req, res) => {
 };
 
 const updateTask = async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ message: "Invalid task ID." });
+  }
+
+  if (!req.body || Object.keys(req.body).length === 0) {
+    return res.status(400).json({ message: "Update payload is required." });
+  }
+
   const task = await Task.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
     runValidators: true,
@@ -30,6 +39,10 @@ const updateTask = async (req, res) => {
 };
 
 const deleteTask = async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ message: "Invalid task ID." });
+  }
+
   const task = await Task.findByIdAndDelete(req.params.id);
 
   if (!task) {
