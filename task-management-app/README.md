@@ -1,5 +1,9 @@
 # Task Management App
 
+## Project Report
+
+Detailed report is available in `PROJECT_REPORT.md`.
+
 ## Folder Structure
 
 ```
