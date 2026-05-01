@@ -6,13 +6,13 @@ const getTasks = async (_req, res) => {
 };
 
 const createTask = async (req, res) => {
-  const { title, description, dueDate } = req.body;
+  const { title, description, status, dueDate } = req.body;
 
   if (!title) {
     return res.status(400).json({ message: "Title is required." });
   }
 
-  const task = await Task.create({ title, description, dueDate });
+  const task = await Task.create({ title, description, status, dueDate });
   return res.status(201).json(task);
 };
 
