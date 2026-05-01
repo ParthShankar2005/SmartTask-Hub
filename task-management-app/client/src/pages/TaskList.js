@@ -19,8 +19,18 @@ const SORT_OPTIONS = [
   { value: "due-date", label: "Due Date (Closest First)" },
 ];
 
-const getApiErrorMessage = (error, fallbackMessage) =>
-  error?.response?.data?.message || fallbackMessage;
+const getApiErrorMessage = (error, fallbackMessage) => {
+  if (!error?.response) {
+    return "Backend is unreachable right now. Please check your network and retry.";
+  }
+
+  const apiMessage = error.response.data?.message;
+  if (typeof apiMessage === "string" && apiMessage.includes("buffering timed out")) {
+    return "Backend database is temporarily unavailable. Please retry shortly.";
+  }
+
+  return apiMessage || fallbackMessage;
+};
 
 const toTimeValue = (value) => {
   if (!value) {
@@ -153,6 +163,7 @@ function TaskList() {
     const token = getAuthToken();
     if (!token) {
       setErrorMessage("Login is required to modify tasks.");
+      closeForm();
       navigate("/login", { state: { message: "Please login to continue." } });
       return null;
     }

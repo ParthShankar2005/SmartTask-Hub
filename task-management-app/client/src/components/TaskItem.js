@@ -17,7 +17,12 @@ const formatDueDate = (dueDate) => {
     return "No due date";
   }
 
-  return new Date(dueDate).toLocaleDateString("en-IN", {
+  const date = new Date(dueDate);
+  if (Number.isNaN(date.getTime())) {
+    return "Invalid due date";
+  }
+
+  return date.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -52,7 +57,7 @@ function TaskItem({ task, searchTerm, isBusy, onEdit, onDelete, onStatusChange }
   return (
     <article className={`task-item-card ${task.status === "completed" ? "is-complete" : ""}`}>
       <div className="d-flex justify-content-between gap-3 mb-2">
-        <h5 className="mb-0 fw-semibold">{highlightText(task.title, searchTerm)}</h5>
+        <h5 className="mb-0 fw-semibold task-item-title">{highlightText(task.title, searchTerm)}</h5>
         <span className={`badge ${statusMeta.className}`}>{statusMeta.label}</span>
       </div>
       <p className="task-item-description mb-3">{highlightText(taskDescription, searchTerm)}</p>

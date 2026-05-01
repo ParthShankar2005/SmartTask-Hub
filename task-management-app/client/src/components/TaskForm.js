@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Button from "./Button";
 
+const TITLE_MAX_LENGTH = 120;
+const DESCRIPTION_MAX_LENGTH = 1000;
+
 const getDefaultFormData = () => ({
   title: "",
   description: "",
@@ -51,14 +54,27 @@ function TaskForm({ isOpen, mode, task, isSaving, onCancel, onSave }) {
     event.preventDefault();
     setValidationError("");
 
-    if (!formData.title.trim()) {
+    const normalizedTitle = formData.title.trim();
+    const normalizedDescription = formData.description.trim();
+
+    if (!normalizedTitle) {
       setValidationError("Task title is required.");
       return;
     }
 
+    if (normalizedTitle.length > TITLE_MAX_LENGTH) {
+      setValidationError(`Task title must be ${TITLE_MAX_LENGTH} characters or fewer.`);
+      return;
+    }
+
+    if (normalizedDescription.length > DESCRIPTION_MAX_LENGTH) {
+      setValidationError(`Description must be ${DESCRIPTION_MAX_LENGTH} characters or fewer.`);
+      return;
+    }
+
     const payload = {
-      title: formData.title.trim(),
-      description: formData.description.trim(),
+      title: normalizedTitle,
+      description: normalizedDescription,
       status: formData.status,
       dueDate: formData.dueDate || undefined,
     };
@@ -71,7 +87,12 @@ function TaskForm({ isOpen, mode, task, isSaving, onCancel, onSave }) {
       <div className="task-modal-card">
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h3 className="mb-0">{dialogTitle}</h3>
-          <button className="btn btn-sm btn-outline-secondary" type="button" onClick={onCancel}>
+          <button
+            className="btn btn-sm btn-outline-secondary"
+            type="button"
+            onClick={onCancel}
+            disabled={isSaving}
+          >
             Cancel
           </button>
         </div>
@@ -87,8 +108,12 @@ function TaskForm({ isOpen, mode, task, isSaving, onCancel, onSave }) {
               value={formData.title}
               onChange={onChange}
               placeholder="Example: Prepare sprint demo"
+              maxLength={TITLE_MAX_LENGTH}
               required
             />
+            <small className="text-muted d-block mt-1">
+              {formData.title.trim().length}/{TITLE_MAX_LENGTH}
+            </small>
           </div>
           <div className="mb-3">
             <label htmlFor="description" className="form-label">
@@ -102,7 +127,11 @@ function TaskForm({ isOpen, mode, task, isSaving, onCancel, onSave }) {
               value={formData.description}
               onChange={onChange}
               placeholder="Optional notes for this task..."
+              maxLength={DESCRIPTION_MAX_LENGTH}
             />
+            <small className="text-muted d-block mt-1">
+              {formData.description.trim().length}/{DESCRIPTION_MAX_LENGTH}
+            </small>
           </div>
           <div className="row g-3 mb-3">
             <div className="col-sm-6">

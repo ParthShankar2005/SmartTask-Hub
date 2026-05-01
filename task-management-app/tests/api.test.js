@@ -153,6 +153,13 @@ describe("API Integration", () => {
     expect(invalidIdUpdate.status).toBe(400);
     expect(invalidIdUpdate.body.message).toBe("Invalid task ID.");
 
+    const longTitleResponse = await request(app).post("/api/tasks").set(authHeader).send({
+      title: "A".repeat(121),
+      status: "pending",
+    });
+    expect(longTitleResponse.status).toBe(400);
+    expect(longTitleResponse.body.message).toContain("Task title must be 120 characters or fewer.");
+
     const missingTaskDelete = await request(app)
       .delete("/api/tasks/507f1f77bcf86cd799439011")
       .set(authHeader);
