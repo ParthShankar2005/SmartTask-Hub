@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const { getDbReadyState, getDbStatus } = require("./config/db");
 const taskRoutes = require("./routes/taskRoutes");
 const authRoutes = require("./routes/authRoutes");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
@@ -16,7 +17,13 @@ app.get("/", (_req, res) => {
 });
 
 app.get("/api/health", (_req, res) => {
-  res.status(200).json({ status: "ok" });
+  const database = getDbStatus();
+  const isHealthy = getDbReadyState() === 1;
+
+  res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? "ok" : "degraded",
+    database,
+  });
 });
 
 app.use(notFound);
