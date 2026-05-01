@@ -1,13 +1,19 @@
 import { useState } from "react";
 import { FaBars, FaSignOutAlt, FaTasks, FaTimes } from "react-icons/fa";
 import { NavLink, useNavigate } from "react-router-dom";
+import { isAuthenticated, logoutUser } from "../services/authService";
 
 function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const isLoggedIn = isAuthenticated();
 
   const onLogout = () => {
-    localStorage.removeItem("token");
+    if (!window.confirm("Are you sure you want to logout?")) {
+      return;
+    }
+
+    logoutUser();
     navigate("/login");
     setIsMenuOpen(false);
   };
@@ -35,16 +41,26 @@ function Navbar() {
           <NavLink to="/" className="app-nav-link" onClick={closeMenu}>
             Home
           </NavLink>
-          <NavLink to="/tasks" className="app-nav-link" onClick={closeMenu}>
-            Tasks
-          </NavLink>
-          <NavLink to="/login" className="app-nav-link" onClick={closeMenu}>
-            Login
-          </NavLink>
-          <button type="button" className="app-nav-logout" onClick={onLogout}>
-            <FaSignOutAlt />
-            <span>Logout</span>
-          </button>
+          {isLoggedIn ? (
+            <>
+              <NavLink to="/tasks" className="app-nav-link" onClick={closeMenu}>
+                Tasks
+              </NavLink>
+              <button type="button" className="app-nav-logout" onClick={onLogout}>
+                <FaSignOutAlt />
+                <span>Logout</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <NavLink to="/login" className="app-nav-link" onClick={closeMenu}>
+                Login
+              </NavLink>
+              <NavLink to="/register" className="app-nav-link" onClick={closeMenu}>
+                Register
+              </NavLink>
+            </>
+          )}
         </div>
       </div>
     </nav>

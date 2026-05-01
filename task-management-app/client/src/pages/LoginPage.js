@@ -1,15 +1,23 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Button from "../components/Button";
-import { loginUser, registerUser } from "../services/authService";
+import { isAuthenticated, loginUser, setAuthToken } from "../services/authService";
 
 function LoginPage() {
+  const location = useLocation();
   const navigate = useNavigate();
-  const [mode, setMode] = useState("login");
-  const [formData, setFormData] = useState({ name: "", email: "", password: "" });
+  const redirectPath = location.state?.from || "/tasks";
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [rememberMe, setRememberMe] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(location.state?.message || "");
   const [isError, setIsError] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated()) {
+      navigate(redirectPath, { replace: true });
+    }
+  }, [navigate, redirectPath]);
 
   const onChange = (event) => {
     setFormData((prev) => ({ ...prev, [event.target.name]: event.target.value }));
@@ -22,13 +30,10 @@ function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const response =
-        mode === "login"
-          ? await loginUser({ email: formData.email, password: formData.password })
-          : await registerUser(formData);
-      localStorage.setItem("token", response.token);
-      setMessage(mode === "login" ? "Login successful." : "Account created and logged in.");
-      navigate("/tasks");
+      const response = await loginUser({ email: formData.email.trim(), password: formData.password });
+      setAuthToken(response.token, rememberMe);
+      setMessage("Login successful.");
+      navigate(redirectPath, { replace: true });
     } catch (error) {
       setIsError(true);
       setMessage(error?.response?.data?.message || "Authentication failed. Check your details.");
@@ -39,40 +44,8 @@ function LoginPage() {
 
   return (
     <section className="container py-4">
-      <h2 className="mb-3">{mode === "login" ? "Login" : "Create Account"}</h2>
-      <div className="d-flex gap-2 mb-3">
-        <button
-          type="button"
-          className={`btn ${mode === "login" ? "btn-dark" : "btn-outline-dark"}`}
-          onClick={() => setMode("login")}
-        >
-          Login
-        </button>
-        <button
-          type="button"
-          className={`btn ${mode === "register" ? "btn-dark" : "btn-outline-dark"}`}
-          onClick={() => setMode("register")}
-        >
-          Register
-        </button>
-      </div>
+      <h2 className="mb-3">Login</h2>
       <form onSubmit={onSubmit} className="card p-3 shadow-sm login-form-card">
-        {mode === "register" && (
-          <div className="mb-3">
-            <label htmlFor="name" className="form-label">
-              Full Name
-            </label>
-            <input
-              id="name"
-              name="name"
-              type="text"
-              className="form-control"
-              value={formData.name}
-              onChange={onChange}
-              required
-            />
-          </div>
-        )}
         <div className="mb-3">
           <label htmlFor="email" className="form-label">
             Email
@@ -101,8 +74,25 @@ function LoginPage() {
             required
           />
         </div>
-        <Button type="submit">{isSubmitting ? "Please wait..." : mode === "login" ? "Login" : "Register"}</Button>
+        <div className="form-check mb-3">
+          <input
+            id="remember-login"
+            className="form-check-input"
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(event) => setRememberMe(event.target.checked)}
+          />
+          <label htmlFor="remember-login" className="form-check-label">
+            Remember me
+          </label>
+        </div>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Please wait..." : "Login"}
+        </Button>
       </form>
+      <p className="mt-3 mb-0">
+        New user? <Link to="/register">Create an account</Link>
+      </p>
       {message && <p className={`mt-3 mb-0 ${isError ? "text-danger" : "text-success"}`}>{message}</p>}
     </section>
   );

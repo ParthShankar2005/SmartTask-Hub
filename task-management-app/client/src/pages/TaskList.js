@@ -3,6 +3,7 @@ import { FaFilter, FaPlus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import TaskForm from "../components/TaskForm";
 import TaskItem from "../components/TaskItem";
+import { getAuthToken, logoutUser } from "../services/authService";
 import { addTask, deleteTask, getTasks, isUnauthorizedError, updateTask } from "../services/taskService";
 
 const STATUS_FILTERS = [
@@ -32,16 +33,16 @@ function TaskList() {
   const loadTasks = useCallback(async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
       const data = await getTasks(token);
       setTasks(data);
       setErrorMessage("");
       setHasLoadError(false);
     } catch (error) {
       if (isUnauthorizedError(error)) {
-        localStorage.removeItem("token");
+        logoutUser();
         setErrorMessage("Session expired. Please login again.");
-        navigate("/login");
+        navigate("/login", { state: { message: "Session expired. Please login again." } });
         return;
       }
       setErrorMessage(getApiErrorMessage(error, "Failed to load tasks. Try again."));
@@ -93,10 +94,10 @@ function TaskList() {
   };
 
   const requireToken = () => {
-    const token = localStorage.getItem("token");
+    const token = getAuthToken();
     if (!token) {
       setErrorMessage("Login is required to modify tasks.");
-      navigate("/login");
+      navigate("/login", { state: { message: "Please login to continue." } });
       return null;
     }
     return token;
@@ -125,9 +126,9 @@ function TaskList() {
       await loadTasks();
     } catch (error) {
       if (isUnauthorizedError(error)) {
-        localStorage.removeItem("token");
+        logoutUser();
         setErrorMessage("Session expired. Please login again.");
-        navigate("/login");
+        navigate("/login", { state: { message: "Session expired. Please login again." } });
         return;
       }
       setErrorMessage(getApiErrorMessage(error, "Task save failed. Please retry."));
@@ -156,9 +157,9 @@ function TaskList() {
       await loadTasks();
     } catch (error) {
       if (isUnauthorizedError(error)) {
-        localStorage.removeItem("token");
+        logoutUser();
         setErrorMessage("Session expired. Please login again.");
-        navigate("/login");
+        navigate("/login", { state: { message: "Session expired. Please login again." } });
         return;
       }
       setErrorMessage(getApiErrorMessage(error, "Task deletion failed."));
@@ -187,9 +188,9 @@ function TaskList() {
       await loadTasks();
     } catch (error) {
       if (isUnauthorizedError(error)) {
-        localStorage.removeItem("token");
+        logoutUser();
         setErrorMessage("Session expired. Please login again.");
-        navigate("/login");
+        navigate("/login", { state: { message: "Session expired. Please login again." } });
         return;
       }
       setErrorMessage(getApiErrorMessage(error, "Status update failed."));
