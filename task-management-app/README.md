@@ -85,3 +85,29 @@ Use this list to connect this backend to MongoDB Atlas.
 1. `ENOTFOUND` often means cluster URL is wrong in `MONGO_URI`.
 2. `Authentication failed` means username/password is incorrect.
 3. `IP not whitelisted` means your network access rules are missing your IP.
+
+## Deploy Backend to Render
+
+Use these settings when creating a Render Web Service from this repository.
+
+1. Connect Render to this GitHub repository.
+2. Select the service root directory as `task-management-app`.
+3. Use:
+   - Build Command: `npm install`
+   - Start Command: `node server.js`
+4. Add environment variables in Render:
+   - `MONGO_URI`
+   - `JWT_SECRET`
+   - `JWT_EXPIRES_IN` (example: `1d`)
+5. Deploy and verify:
+   - `GET /` should return the API running message
+   - `GET /api/health` should return `{ "status": "ok" }`
+6. Enable auto deploy so new GitHub pushes redeploy automatically.
+
+### Frontend API URL Update
+
+When deploying frontend separately, set:
+
+- `REACT_APP_API_URL=https://<your-render-service>.onrender.com/api`
+
+If running frontend locally, keep using the local proxy (`client/package.json`).

@@ -15,6 +15,10 @@ app.get("/", (_req, res) => {
   res.status(200).json({ message: "Task Management API is running." });
 });
 
+app.get("/api/health", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 app.use(notFound);
 app.use(errorHandler);
 
