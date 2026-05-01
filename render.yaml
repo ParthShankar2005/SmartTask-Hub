@@ -6,7 +6,8 @@ services:
     rootDir: task-management-app
     buildCommand: npm install
     startCommand: node server.js
-    autoDeploy: true
+    autoDeployTrigger: commit
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
         value: 22
