@@ -125,6 +125,9 @@ Use these settings when creating a Vercel project from this repository.
 For React Router routes (for example `/tasks`), this project includes:
 
 - `client/vercel.json` rewrite to `index.html` for SPA routing.
+- `client/vercel.json` also proxies `/api/*` to Render backend.
+
+If `REACT_APP_API_URL` is not set, frontend requests still work through the `/api/*` Vercel proxy.
 
 ### Local Frontend
 
