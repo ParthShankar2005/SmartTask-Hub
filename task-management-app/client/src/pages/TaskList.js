@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FaFilter, FaPlus } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import TaskForm from "../components/TaskForm";
 import TaskItem from "../components/TaskItem";
-import { createTask, deleteTask, getTasks, updateTask } from "../services/taskService";
+import { addTask, deleteTask, getTasks, isUnauthorizedError, updateTask } from "../services/taskService";
 
 const STATUS_FILTERS = [
   { value: "all", label: "All" },
@@ -15,6 +16,7 @@ const getApiErrorMessage = (error, fallbackMessage) =>
   error?.response?.data?.message || fallbackMessage;
 
 function TaskList() {
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,23 +27,33 @@ function TaskList() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [hasLoadError, setHasLoadError] = useState(false);
 
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await getTasks();
+      const token = localStorage.getItem("token");
+      const data = await getTasks(token);
       setTasks(data);
       setErrorMessage("");
+      setHasLoadError(false);
     } catch (error) {
+      if (isUnauthorizedError(error)) {
+        localStorage.removeItem("token");
+        setErrorMessage("Session expired. Please login again.");
+        navigate("/login");
+        return;
+      }
       setErrorMessage(getApiErrorMessage(error, "Failed to load tasks. Try again."));
+      setHasLoadError(true);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     loadTasks();
-  }, []);
+  }, [loadTasks]);
 
   useEffect(() => {
     if (!successMessage) {
@@ -64,6 +76,7 @@ function TaskList() {
     setSelectedTask(null);
     setIsFormOpen(true);
     setErrorMessage("");
+    setHasLoadError(false);
   };
 
   const openEditForm = (task) => {
@@ -71,6 +84,7 @@ function TaskList() {
     setSelectedTask(task);
     setIsFormOpen(true);
     setErrorMessage("");
+    setHasLoadError(false);
   };
 
   const closeForm = () => {
@@ -82,6 +96,7 @@ function TaskList() {
     const token = localStorage.getItem("token");
     if (!token) {
       setErrorMessage("Login is required to modify tasks.");
+      navigate("/login");
       return null;
     }
     return token;
@@ -95,19 +110,26 @@ function TaskList() {
 
     setIsSubmitting(true);
     setErrorMessage("");
+    setHasLoadError(false);
 
     try {
       if (formMode === "edit" && selectedTask?._id) {
         await updateTask(selectedTask._id, payload, token);
         setSuccessMessage("Task updated successfully.");
       } else {
-        await createTask(payload, token);
+        await addTask(payload, token);
         setSuccessMessage("Task created successfully.");
       }
 
       closeForm();
       await loadTasks();
     } catch (error) {
+      if (isUnauthorizedError(error)) {
+        localStorage.removeItem("token");
+        setErrorMessage("Session expired. Please login again.");
+        navigate("/login");
+        return;
+      }
       setErrorMessage(getApiErrorMessage(error, "Task save failed. Please retry."));
     } finally {
       setIsSubmitting(false);
@@ -126,12 +148,19 @@ function TaskList() {
 
     setActiveTaskId(task._id);
     setErrorMessage("");
+    setHasLoadError(false);
 
     try {
       await deleteTask(task._id, token);
       setSuccessMessage("Task deleted.");
       await loadTasks();
     } catch (error) {
+      if (isUnauthorizedError(error)) {
+        localStorage.removeItem("token");
+        setErrorMessage("Session expired. Please login again.");
+        navigate("/login");
+        return;
+      }
       setErrorMessage(getApiErrorMessage(error, "Task deletion failed."));
     } finally {
       setActiveTaskId("");
@@ -150,12 +179,19 @@ function TaskList() {
 
     setActiveTaskId(task._id);
     setErrorMessage("");
+    setHasLoadError(false);
 
     try {
       await updateTask(task._id, { status: "completed" }, token);
       setSuccessMessage("Task marked as completed.");
       await loadTasks();
     } catch (error) {
+      if (isUnauthorizedError(error)) {
+        localStorage.removeItem("token");
+        setErrorMessage("Session expired. Please login again.");
+        navigate("/login");
+        return;
+      }
       setErrorMessage(getApiErrorMessage(error, "Status update failed."));
     } finally {
       setActiveTaskId("");
@@ -199,7 +235,14 @@ function TaskList() {
 
       {errorMessage && (
         <div className="alert alert-danger shadow-sm" role="alert">
-          {errorMessage}
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <span>{errorMessage}</span>
+            {hasLoadError && (
+              <button className="btn btn-sm btn-outline-danger" type="button" onClick={loadTasks}>
+                Retry
+              </button>
+            )}
+          </div>
         </div>
       )}
       {successMessage && (

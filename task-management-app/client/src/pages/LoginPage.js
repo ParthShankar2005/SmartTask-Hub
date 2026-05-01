@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "../components/Button";
 import { loginUser, registerUser } from "../services/authService";
 
 function LoginPage() {
+  const navigate = useNavigate();
   const [mode, setMode] = useState("login");
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,6 +28,7 @@ function LoginPage() {
           : await registerUser(formData);
       localStorage.setItem("token", response.token);
       setMessage(mode === "login" ? "Login successful." : "Account created and logged in.");
+      navigate("/tasks");
     } catch (error) {
       setIsError(true);
       setMessage(error?.response?.data?.message || "Authentication failed. Check your details.");
